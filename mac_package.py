@@ -40,8 +40,19 @@ app = stage / 'DirtySlots.app'
 count = check(app, manifest)
 archive.unlink()  # Verified archive is no longer needed; reserve disk for image/copy checks.
 app.rename(stage / 'Dirty Slots.app')
+app = stage / 'Dirty Slots.app'
+# Frozen content is injected after Unity's original ad-hoc signing. Re-seal only
+# the outer app, preserving the already-valid nested code and its entitlements.
+run('codesign', '--force', '--sign', '-', '--preserve-metadata=entitlements,requirements,flags', str(app))
+run('codesign', '--verify', '--deep', '--strict', '--verbose=2', str(app))
+signed_hashes = {p.relative_to(app).as_posix(): sha(p) for p in app.rglob('*') if p.is_file()}
+assert set(signed_hashes) == set(manifest['outputHashes']), 'Signing changed the app file set'
+allowed = {'Contents/_CodeSignature/CodeResources', 'Contents/MacOS/DirtySlotsV2'}
+changed = {n for n, digest in signed_hashes.items() if digest != manifest['outputHashes'][n]}
+assert changed <= allowed, 'Signing modified game content: ' + repr(changed - allowed)
+manifest = dict(manifest, outputHashes=signed_hashes)
 os.symlink('/Applications', stage / 'Applications')
-(stage / 'READ ME.txt').write_text('Drag Dirty Slots into Applications, then eject this disk.\n\nUnsigned beta: no Developer ID signature or notarization. macOS may require your approval in System Settings > Privacy & Security after your first open attempt. Do not disable Gatekeeper.\n\nSaved progress and workshop tracks are stored separately from the app.\nMac gameplay and sustained performance qualification remain pending.\n')
+(stage / 'READ ME.txt').write_text('Drag Dirty Slots into Applications, then eject this disk.\n\nAd-hoc-signed beta: no Developer ID signature or notarization. After your first open attempt, approve Dirty Slots in System Settings > Privacy & Security > Open Anyway. Do not disable Gatekeeper.\n\nSaved progress and workshop tracks are stored separately from the app.\nPackaging checks alone do not certify browser installation, gameplay or sustained performance.\n')
 dmg = out / 'DirtySlots-0.0.16-Mac-AppleSilicon.dmg'
 run('hdiutil', 'create', '-srcfolder', str(stage), '-volname', 'Dirty Slots 0.0.16', '-format', 'UDZO', str(dmg))
 run('hdiutil', 'verify', str(dmg))
@@ -55,11 +66,14 @@ try:
     installed = work / 'installed' / 'Dirty Slots.app'
     run('ditto', str(mount / 'Dirty Slots.app'), str(installed))
     assert check(installed, manifest) == count
+    run('codesign', '--verify', '--deep', '--strict', str(installed))
 finally:
     run('hdiutil', 'detach', str(mount))
 proof = dict(verified=True, file=dmg.name, bytes=dmg.stat().st_size, sha256=sha(dmg), appFiles=count,
              originalPayloadSha256=manifest['playerPayloadSha256'], mountedParity=True,
              copiedAppParity=True, executePermissions=True, developerIDSigned=False,
              notarized=False, runtimeTested=False)
+proof.update(adHocSigned=True, codeSignatureVerified=True, unchangedGameContent=True,
+             signatureChangedFiles=sorted(changed))
 (out / 'mac-dmg-proof.json').write_text(json.dumps(proof, indent=2))
 print(json.dumps(proof), flush=True)
