@@ -9,6 +9,18 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Reserve disk for frozen payload and image checks
+        run: |
+          # This ephemeral packaging runner needs no Xcode or Unity installation.
+          python3 - <<'PY'
+          import shutil, subprocess
+          from pathlib import Path
+          if shutil.disk_usage('.').free < 28 * 1024**3:
+              for app in Path('/Applications').glob('Xcode*.app'):
+                  assert app.resolve().parent == Path('/Applications')
+                  subprocess.run(['sudo', 'rm', '-rf', str(app)], check=True)
+          assert shutil.disk_usage('.').free > 24 * 1024**3, 'Insufficient packaging scratch space'
+          PY
       - name: Fetch verified frozen release
         run: |
           df -h .
