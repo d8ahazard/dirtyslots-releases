@@ -24,12 +24,12 @@ jobs:
       - name: Fetch verified frozen release
         run: |
           df -h .
-          curl --fail --location --retry 5 --output payload.zip https://dirtyslots.digitalhigh.co/releases/0.0.16/desktop-payloads/daca22b1d0b4a43a/DirtySlots-0.0.16-Mac-AppleSilicon.zip
+          curl --fail --location --retry 5 --output payload.zip https://dirtyslots.digitalhigh.co/releases/0.0.17/desktop-payloads/b69258363f328182/DirtySlots-0.0.17-Mac-AppleSilicon.zip
       - name: Package and verify mounted and copied app
         run: python3 mac_package.py
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: DirtySlots-Mac-DMG-0.0.16
+          name: DirtySlots-Mac-DMG-0.0.17
           path: out/*
           compression-level: 0
           retention-days: 3
