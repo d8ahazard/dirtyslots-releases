@@ -25,7 +25,7 @@ root = Path.cwd(); work = root / 'work'; out = root / 'out'
 work.mkdir(exist_ok=True); out.mkdir(exist_ok=True)
 manifest = json.loads((root / 'mac-manifest.json').read_text())
 archive = root / 'payload.zip'
-assert sha(archive) == 'daca22b1d0b4a43af6fcfe98f7b8ceeac6ff2e65b0833e157c9e6247077a7983'
+assert sha(archive) == 'b69258363f32818292c6a154864ae672dea9ac9a0ac2bbf62cf3e9de756d8cbf'
 stage = work / 'stage'; stage.mkdir()
 with zipfile.ZipFile(archive) as z:
     for info in z.infolist():
@@ -53,8 +53,8 @@ assert changed <= allowed, 'Signing modified game content: ' + repr(changed - al
 manifest = dict(manifest, outputHashes=signed_hashes)
 os.symlink('/Applications', stage / 'Applications')
 (stage / 'READ ME.txt').write_text('Drag Dirty Slots into Applications, then eject this disk.\n\nAd-hoc-signed beta: no Developer ID signature or notarization. After your first open attempt, approve Dirty Slots in System Settings > Privacy & Security > Open Anyway. Do not disable Gatekeeper.\n\nSaved progress and workshop tracks are stored separately from the app.\nPackaging checks alone do not certify browser installation, gameplay or sustained performance.\n')
-dmg = out / 'DirtySlots-0.0.16-Mac-AppleSilicon.dmg'
-run('hdiutil', 'create', '-srcfolder', str(stage), '-volname', 'Dirty Slots 0.0.16', '-format', 'UDZO', str(dmg))
+dmg = out / 'DirtySlots-0.0.17-Mac-AppleSilicon.dmg'
+run('hdiutil', 'create', '-srcfolder', str(stage), '-volname', 'Dirty Slots 0.0.17', '-format', 'UDZO', str(dmg))
 run('hdiutil', 'verify', str(dmg))
 # Release the staging copy before testing an actual installation copy.
 shutil.rmtree(stage)
